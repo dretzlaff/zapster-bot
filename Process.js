@@ -23,13 +23,14 @@ function openSpreadsheet(spreadsheetId) {
 }
 
 /**
- * Sends Welcome and TagNotify notifications based on new/changed
- * Tags.notify column values. 
+ * Processes Tags to make sure emails and phone numbers in Tags.notify have
+ * Contacts rows that point to them. Welcome and TagNotify notifications are
+ * scheduled for changes.
  */
 function processTagNotices() {
-  // Use "Tags" to build a map from contacts' email/phone to an
-  // array of tags. At the end of this function, the "tags" column
-  // of "Contacts" will match this.
+  // Use Tags.notify to build a map from contacts' email/phone to an
+  // array of tags. At the end of this function, Contacts.tags will match
+  // this notifyToTags map.
   var notifyToTags = {};
   sheetData.tags.getRows().forEach(tag => {
     splitToArray_(tag.notify).forEach(notify => {
@@ -78,6 +79,10 @@ function processTagNotices() {
   });
 }
 
+/**
+ * Processes Zaps by looking up the student by tag and scheduling
+ * zap notifications.
+ */
 function processZaps() {
   var tags = sheetData.tags.withLookup(t => t.tag);
   sheetData.zaps.getRows().forEach(zap => {
@@ -107,9 +112,36 @@ function processZaps() {
   });
 }
 
+/**
+ * Returns a map from student name to {totalZap and totalDistance}.
+ */
+function getZapTotals() {
+  var totals = {};
+  var processed = {}; // only process first row for each student and date
+  sheetData.zaps.getRows().forEach(zap => {
+    var key = Utilities.formatDate(zap.zapTime, Session.getTimeZone(), "yyyy-MM-dd") + ":" + zap.studentName;
+    if (key in processed) {
+      return;
+    }
+    processed[key] = true;
+
+    studentTotals = totals[zap.studentName];
+    if (!studentTotals) {
+      studentTotals = {
+        totalZaps: 0,
+        totalDistance: 0
+      };
+      totals[zap.studentName] = studentTotals;
+    }
+    studentTotals.totalZaps += 1;
+    studentTotals.totalDistance += zap.distance;
+  });
+  return totals;
+}
+
 function processNotifications() {
-  // Make a quick contact lookup map.
   var tags = sheetData.tags.withLookup(t => t.tag);
+  var zapTotals = null; // lazy load
   sheetData.notifications.getRows()
     .filter(n => n.lastStatus != "Complete" &&  n.attempts < MAX_NOTIFY_ATTEMPTS)
     .forEach(notification => {
@@ -120,19 +152,13 @@ function processNotifications() {
 
       // Compute total zaps and distance for Zap notifications.
       if (notification.type == 'Zap') {
-        // Accumulate into local variables to avoid Sheets API calls for each zap.
-        var totalZaps = 0;
-        var totalDistance = 0.0;
-        sheetData.zaps.getRows()
-          // We assume here that Zap notifications have a single studentName.
-          // Accumulate by name instead of tag to gracefully handle replacement tags.
-          .filter(zap => zap.studentName == notification.studentNames)
-          .forEach(zap => {
-            totalZaps += 1;
-            totalDistance += zap.distance;
-          });
-        notification.totalZaps = totalZaps;
-        notification.totalDistance = totalDistance;
+        if (!zapTotals) {
+          zapTotals = getZapTotals();
+        }
+        // Assume zap notifications have a single student.
+        var studentTotals = zapTotals[notification.studentNames];
+        notification.totalZaps = studentTotals.totalZaps;
+        notification.totalDistance = studentTotals.totalDistance;
       }
 
       try {

@@ -1,3 +1,4 @@
+/*
 const REQUIRED_STATION_ID = "00:00:00:00:00:00";
 
 const TWILIO_SERVICE_ID = "";
@@ -5,3 +6,4 @@ const TWILIO_ACCOUNT_ID = "";
 const TWILIO_AUTH_TOKEN = "";
 
 const INTEGRATION_TEST_SPREADSHEET_ID = "";
+*/

@@ -54,6 +54,10 @@ function integrationTestSetup() {
     zapTime: '12/15/2021 8:45:00',
     tag: '123456789'
   });
+  sheetData.zaps.append({
+    zapTime: '12/15/2021 14:46:00',
+    tag: '123456789'
+  });
 }
 
 function welcomeTest() {
@@ -194,8 +198,17 @@ function zapProcessTest() {
   integrationTestSetup();
 
   processZaps();
+  
+  // check the day's second zap
+  var joeZap = sheetData.zaps.getRows()[1]
+  assertEquals_("Joe Blow", joeZap.studentName);
+  assertEquals_(0.5, joeZap.distance);
 
-  var joeZap = sheetData.zaps.getRows()[0]
+  var joe = sheetData.tags.getRows()[0];
+  assertEquals_(joeZap.zapTime, joe.lastZap);
+
+  // use first zap for the rest of our assertions
+  joeZap = sheetData.zaps.getRows()[0]
   assertEquals_("Joe Blow", joeZap.studentName);
   assertEquals_(0.5, joeZap.distance);
 
@@ -206,9 +219,6 @@ function zapProcessTest() {
   assertEquals_(123456789, notifyEmail.tags);
   assertEquals_("", notifyEmail.attempts);
   assertEquals_("", notifyEmail.lastStatus);
-
-  var joe = sheetData.tags.getRows()[0];
-  assertEquals_(joeZap.zapTime, joe.lastZap);
 
   var notifySms = sheetData.notifications.getRows()[1];
   assertEquals_("858-442-0289", notifySms.contact);
@@ -223,8 +233,9 @@ function zapProcessTest() {
   assertContains_("zapped", mailApp.testEmail.htmlBody);
   assertContains_("Joe Blow", mailApp.testEmail.subject);
   assertContains_("zapped", mailApp.testEmail.body);
+  assertEquals_(2, mailApp.allEmails.length);
   assertEquals_(
-    "Joe Blow zapped at 8:45:00 AM on 12/15/2021. Beep beep!\n\n" +
+    "Joe Blow zapped at 2:46:00 PM on 12/15/2021. Beep beep!\n\n" +
     "School year totals:\n\n" +
     "- 1 zaps\n" +
     "- 0.5 miles\n\n" +
@@ -238,12 +249,13 @@ function zapProcessTest() {
   assertEquals_(1, notifySms.attempts);
   assertEquals_("Complete", notifySms.lastStatus);
 
+  assertEquals_(2, urlFetchApp.allRequests.length);
   assertEquals_(
     "https://api.twilio.com/2010-04-01/Accounts/AC1d604e9a9b984ebcae5a6eabeae2226c/Messages.json",
     urlFetchApp.testRequest.url);
   assertEquals_("+18584420289", urlFetchApp.testRequest.options.payload.To);
   assertEquals_(
-    "Joe Blow zapped at 8:45:00 AM on 12/15/2021. That's 1 zaps and 0.5 miles this school year!",
+    "Joe Blow zapped at 2:46:00 PM on 12/15/2021. That's 1 zaps and 0.5 miles this school year!",
     urlFetchApp.testRequest.options.payload.Body);
 
   console.info("zapProcessTest PASSED");
@@ -272,10 +284,10 @@ function zapPostTest() {
   assertEquals_(2, response.newZap);
   assertEquals_(2, response.newStatus);
 
-  var zap = sheetData.zaps.getRows()[1];
+  var zap = sheetData.zaps.getRows()[2];
   assertEquals_(11111111, zap.tag);
   assertEquals_(1645540855000, zap.zapTime.getTime());
-  zap = sheetData.zaps.getRows()[2];
+  zap = sheetData.zaps.getRows()[3];
   assertEquals_(22222222, zap.tag);
   assertEquals_(1645540855000, zap.zapTime.getTime());
 

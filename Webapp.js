@@ -65,7 +65,8 @@ function doPost(e) {
 
     var zapKeys = {};
     sheetData.zaps.getRows().forEach(z => {
-      zapKeys[z.tag + "@" + z.zapTime] = true;
+      var zapHour = Utilities.formatDate(z.zapTime, Session.getTimeZone(), "yyyy-MM-dd'T'HH");
+      zapKeys[z.tag + "@" + zapHour] = true;
     });
     for (var i = 0; i < e.parameter.bikeEventCount || 0; ++i) {
       var zapTime = new Date(1000 * parseInt(e.parameter["BikeDateTime" + i]));
