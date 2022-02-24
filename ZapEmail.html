@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <p>
+      <?= notification.studentNames ?> zapped at
+      <b><?= notification.zapTime.toLocaleTimeString() ?></b> on
+      <b><?= notification.zapTime.toLocaleDateString() ?></b>. Beep beep!
+    </p>
+
+    <p>School year totals:
+      <ul>
+        <li><?= notification.totalZaps ?> zaps</li>
+        <li><?= notification.totalDistance ?> miles</li>
+      </ul>
+    </p>
+
+<? if (buttonUrl) { ?>
+    <p><?= buttonZaps - notification.totalZaps ?> more zaps until the next award.
+    <br/>
+    <img src='<?= buttonUrl ?>' style="display:block; margin: 10px 40px" width=80 height=80 alt="<?= buttonZaps ?> Zaps">
+<? } ?>
+    <p>
+      Sincerely,
+      <br/>
+      Zapster Bot
+    </p>
+
+    <p style="color: #AAA; font-size: 12px">
+      Zapsters is a self-powered commuting program from <a href="https://www.rocv.org/">Reach Out Crest View</a>.<br/>
+      To change your notification preferences, reply to this email or simply <a href="<?= links.unsubscribe ?>">unsubscribe</a>.
+    </p>
+  </body>
+
+</html>
