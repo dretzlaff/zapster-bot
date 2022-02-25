@@ -5,5 +5,6 @@ const TWILIO_SERVICE_ID = "";
 const TWILIO_ACCOUNT_ID = "";
 const TWILIO_AUTH_TOKEN = "";
 
-const INTEGRATION_TEST_SPREADSHEET_ID = "";
+const PROD_ZAP_DATA_FOLDER_ID = "";
+const TEST_ZAP_DATA_FOLDER_ID = "";
 */

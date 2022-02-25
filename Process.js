@@ -1,25 +1,9 @@
 const MAX_NOTIFY_ATTEMPTS = 5;
 
-// variables that take different values for prod vs test
-var sheetData = null;
-var mailApp = null;
-var urlFetchApp = null;
-
 function processAll() {
   processTagNotices();
   processZaps();
   processNotifications();
-}
-
-function openSpreadsheet(spreadsheetId) {
-  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-  return {
-    zaps: new SheetData_(spreadsheet, "Zaps"),
-    tags: new SheetData_(spreadsheet, "Tags"),
-    contacts: new SheetData_(spreadsheet, "Contacts"),
-    notifications: new SheetData_(spreadsheet, "Notifications"),
-    battery: new SheetData_(spreadsheet, "Battery")
-  }
 }
 
 /**

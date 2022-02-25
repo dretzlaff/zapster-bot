@@ -1,5 +1,5 @@
 function doGet(e) {
-  sheetData = openSpreadsheet(INTEGRATION_TEST_SPREADSHEET_ID);
+  setupProd();
   var output = HtmlService.createHtmlOutput();
   if (!e.parameter.contact) {
     output.append("missing contact");
@@ -40,6 +40,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  setupProd();
   var response = {};
   if (e.parameter.StationId != REQUIRED_STATION_ID) {
     response.error = "Invalid StationId";

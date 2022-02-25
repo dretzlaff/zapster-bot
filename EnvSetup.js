@@ -1,20 +1,41 @@
+const ZAP_DATA_SHEET_NAMES = ["Zaps", "Tags", "Contacts", "Notifications", "Battery"];
+const CARRY_FORWARD_SHEET_NAMES = ["Tags", "Contacts"];
+
 // variables that take different values for prod vs test
 var mailApp = null;
 var urlFetchApp = null;
 var sheetData = null;
 
-function setupTestSheetData() {
-  var file = getZapDataFiles_()["Test"];
-  setSheetData_(openAndTruncate_(file));
-}
-
 function setupProd() {
-  // Allow test setup to take priority.
-  if (mailApp != null | urlFetchApp != null || sheetData != null) {
-    return;
+  if (mailApp != null || urlFetchApp != null || sheetData != null) {
+    return; // never overwrite test with prod
   }
   mailApp = MailApp;
   urlFetchApp = UrlFetchApp;
+  sheetData = openSheetData_(PROD_ZAP_DATA_FOLDER_ID, new Date());
+}
+function setupTest(date) {
+  // leave mailApp and urlFetchApp null
+  sheetData = openSheetData_(TEST_ZAP_DATA_FOLDER_ID, date);
+  ZAP_DATA_SHEET_NAMES.forEach(name => {
+    var sheet = sheetData[name.toLowerCase()].sheet;
+    if (sheet.getLastRow() > 1) {
+      sheet.deleteRows(2, sheet.getLastRow() - 1);
+    }
+  });
+}
+
+function openSheetData_(folderId, date) {
+  var folder = DriveApp.getFolderById(folderId);
+  var files = {};
+  var fileIter = folder.getFilesByType(MimeType.GOOGLE_SHEETS);
+  while (fileIter.hasNext()) {
+    var file = fileIter.next();
+    var year = file.getName().match(/Zap Data \b(\d{4})\b/i);
+    if (year) {
+      files[parseInt(year[1])] = file;
+    }
+  }
 
   var year = parseInt(Utilities.formatDate(date, Session.getScriptTimeZone(), "yyyy"));
   var month = parseInt(Utilities.formatDate(date, Session.getScriptTimeZone(), "MM"));
@@ -22,50 +43,27 @@ function setupProd() {
     year -= 1;
   }
 
-  var files = getZapDataFiles_();
-  var file = files[year.toString()];
-  if (file) {
-    setSheetData(SpreadsheetApp.open(file));
+  var spreadsheet;
+  if (year in files) {
+    spreadsheet = SpreadsheetApp.open(files[year]);
   } else {
-    var sourceToCopy = files[(year-1).toString()];
+    var sourceToCopy = files[year-1];
     if (!sourceToCopy) {
-      sourceToCopy = files["Test"];
+      throw Error("cannot find year " + (year-1) + " to initialize year " + year);
     }
-    if (!sourceToCopy) {
-      throw Error("Cannot find a zap data spreadsheet in " + ZAP_DATA_FOLDER_ID);
-    }
-    // Copy the source and delete all tabs' rows except their headers.
-    var newFileName = year + " Zap Data";
-    file = sourceToCopy.makeCopy(newName, zapDataFolder);
-    setSheetData_(openAndTruncate_(file));
+    console.info("Creating spreadsheet for " + year);
+    var newName = sourceToCopy.getName().replace(/\b\d{4}\b.+/, year + "-" + (year+1));
+    var file = sourceToCopy.makeCopy(newName, folder);
+    spreadsheet = SpreadsheetApp.open(file);
+    spreadsheet.getSheets()
+      // carry forward tag and contact information, truncating the rest
+      .filter(sheet => !CARRY_FORWARD_SHEET_NAMES.includes(sheet.getName()))
+      .filter(sheet => sheet.getLastRow() > 1)
+      .forEach(sheet => sheet.deleteRows(2, sheet.getLastRow() - 1));
   }
-}
-
-function openAndTruncate_(file) {
-  var spreadsheet = SpreadsheetApp.open(file);
-  spreadsheet.getSheets()
-    .filter(sheet => sheet.getLastRow() > 1)
-    .forEach(sheet => sheet.deleteRows(2, sheet.getLastRow() - 1));
-  return spreadsheet;
-}
-
-function getZapDataFiles_() {
-  var fileIter = ZAP_DATA_FOLDER.getFilesByType(MimeType.GOOGLE_SHEETS);
-  var files = {};
-  while (fileIter.hasNext()) {
-    var file = fileIter.next();
-    var firstWord = file.getName().match(/^\w+/)[0];
-    files[firstWord] = file;
-  }
-  return files;
-}
-
-function setSheetData_(spreadsheet) {
-  sheetData = {
-    zaps: new SheetData_(spreadsheet, "Zaps"),
-    tags: new SheetData_(spreadsheet, "Tags"),
-    contacts: new SheetData_(spreadsheet, "Contacts"),
-    notifications: new SheetData_(spreadsheet, "Notifications"),
-    battery: new SheetData_(spreadsheet, "Battery")
-  }
+  var sheets = {};
+  ZAP_DATA_SHEET_NAMES.forEach(name => {
+    sheets[name.toLowerCase()] = new SheetData_(spreadsheet, name);
+  });
+  return sheets;
 }

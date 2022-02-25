@@ -1,3 +1,5 @@
+// TODO: make sure "truncation" leaves at least one empty row.
+
 function allTests() {
   unitTests();
   welcomeTest();
@@ -9,12 +11,8 @@ function allTests() {
 
 function integrationTestSetup() {
   // truncate test spreadsheet content, keeping headers.
-  var spreadsheet = SpreadsheetApp.openById(INTEGRATION_TEST_SPREADSHEET_ID);
-  spreadsheet.getSheets()
-    .filter(sheet => sheet.getLastRow() > 1)
-    .forEach(sheet => sheet.deleteRows(2, sheet.getLastRow() - 1));
+  setupTest(new Date("2021-09-01"));
 
-  sheetData = openSpreadsheet(INTEGRATION_TEST_SPREADSHEET_ID);
   mailApp = {
     allEmails: [],
     sendEmail: function(email) {
@@ -317,7 +315,7 @@ function unsubscribeTest() {
   var response = doGet(request);
   assertContains_("<b>unsubscribed</b>", response.getContent());
 
-  sheetData = openSpreadsheet(INTEGRATION_TEST_SPREADSHEET_ID);
+  sheetData.contacts.data = null; // force reload
   emailContact = sheetData.contacts.getRows()[0];
   if (emailContact.unsubscribed == null) {
     throw Error("'unsubscribed' should NOT be null")
@@ -327,7 +325,7 @@ function unsubscribeTest() {
   response = doGet(request);
   assertContains_("<b>subscribed</b>", response.getContent());
 
-  sheetData = openSpreadsheet(INTEGRATION_TEST_SPREADSHEET_ID);
+  sheetData.contacts.data = null; // force reload
   emailContact = sheetData.contacts.getRows()[0];
   assertEquals_("", emailContact.unsubscribed);
 
