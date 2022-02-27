@@ -7,6 +7,7 @@ function allTests() {
   zapPostTest();
   unsubscribeTest();
   sendExceptionTest();
+  createNewSheetTest();
 }
 
 function integrationTestSetup() {
@@ -330,6 +331,34 @@ function unsubscribeTest() {
   assertEquals_("", emailContact.unsubscribed);
 
   console.info("unsubscribeTest PASSED");
+}
+
+function createNewSheetTest() {
+  var files = findZapDataFiles(TEST_ZAP_DATA_FOLDER_ID);
+  if (!files[2020]) {
+    throw Error("expected 2020 sheet to define structure")
+  }
+  if (files[2021]) {
+    files[2021].setTrashed(true);
+  }
+  sheetData = openSheetData(TEST_ZAP_DATA_FOLDER_ID, new Date("2021-09-01"));
+  files = findZapDataFiles(TEST_ZAP_DATA_FOLDER_ID);
+  if (!files[2021]) {
+    throw Error("expected 2021 sheet to be created")
+  }
+
+  ZAP_DATA_SHEET_NAMES.forEach(name => {
+    var hasData = sheetData[name.toLowerCase()].getRows().length > 0;
+    if (CARRY_FORWARD_SHEET_NAMES.includes(name)) {
+      if (!hasData) {
+        throw Error(name + " should have carry-forward data in its first row");
+      }
+    } else {
+      if (hasData) {
+        throw Error(name + " should NOT have carry-forward data in its first row");
+      }
+    }
+  });
 }
 
 ///////////////////////////////////////// TESTS /////////////////////////////////////////
