@@ -166,15 +166,16 @@ function sendExceptionTest() {
     throw 'test exception';
   }
 
+  processTagNotices();
   processZaps();
   processNotifications();
   SCRIPT_EXECUTION_TIME.setTime(SCRIPT_EXECUTION_TIME.getTime() + MIN_NOTIFY_RETRY_WAIT_MILLIS);
 
-  notifyEmail = sheetData.notifications.getRows()[0];
+  notifyEmail = sheetData.notifications.getRows()[2];
   assertEquals_(1, notifyEmail.attempts);
   assertEquals_("Complete", notifyEmail.lastStatus);
 
-  notifySms = sheetData.notifications.getRows()[1];
+  notifySms = sheetData.notifications.getRows()[3];
   assertEquals_(1, notifySms.attempts);
   if (!notifySms.lastStatus.includes("test exception")) {
     throw 'Expected "test exception", not: ' + notifySms.lastStatus;
@@ -183,7 +184,7 @@ function sendExceptionTest() {
   // should not throw
   checkForStuckNotifications();
 
-  // get it into a permanent failure.
+  // get them into a permanent failure.
   for (var i = 1; i <= 5; ++i) {
     processNotifications();
     SCRIPT_EXECUTION_TIME.setTime(SCRIPT_EXECUTION_TIME.getTime() + MIN_NOTIFY_RETRY_WAIT_MILLIS);
@@ -198,7 +199,7 @@ function sendExceptionTest() {
     checkForStuckNotifications();
     throw new Error("No exception thrown for stuck notification.")
   } catch (e) {
-    assertContains_("2 stuck notifications", e.message);
+    assertContains_("3 stuck notifications", e.message);
     assertContains_("test exception", e.message);
   }
   SCRIPT_EXECUTION_TIME.setTime(SCRIPT_EXECUTION_TIME.getTime() + 24 * 3600 * 1000);

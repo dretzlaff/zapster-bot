@@ -123,7 +123,9 @@ function processZaps() {
 function processNotifications() {
   var lock = waitForScriptLock();
 
-  var notifications = sheetData.notifications.getRows().filter(shouldProcessNotification);
+  var notifications = sheetData.notifications.getRows()
+    .filter(shouldProcessNotification)
+    .filter(n => !n.attempts || n.attempts < MAX_NOTIFY_ATTEMPTS);
   if (notifications.length == 0) {
     return; // avoid creating tag lookup map, etc.
   }
@@ -212,6 +214,7 @@ function checkForStuckNotifications() {
   var oneDayAgo = new Date(SCRIPT_EXECUTION_TIME.getTime() - 24 * 3600 * 1000);
   var stuck = sheetData.notifications.getRows()
     .filter(shouldProcessNotification)
+    .filter(n => n.attempts >= MAX_NOTIFY_ATTEMPTS)
     .filter(n => n.lastAttempt.getTime() > oneDayAgo.getTime())
   if (stuck.length > 0) {
     var message = stuck.length + " stuck notifications in the last 24 hours.";
@@ -222,11 +225,8 @@ function checkForStuckNotifications() {
 
 function shouldProcessNotification(notification) {
   var maxLastAttempt = SCRIPT_EXECUTION_TIME.getTime() - MIN_NOTIFY_RETRY_WAIT_MILLIS;
-  console.info(JSON.stringify(notification));
-  console.info("maxLastAttempt = " + new Date(maxLastAttempt) + ", lastAttempt = " + notification.lastAttempt);
   return notification.lastStatus != "Complete"
       && !notification.lastStatus.startsWith("Unsubbed")
-      && (!notification.attempts || notification.attempts < MAX_NOTIFY_ATTEMPTS)
       && (!notification.lastAttempt || notification.lastAttempt.getTime() <= maxLastAttempt);
 }
 
