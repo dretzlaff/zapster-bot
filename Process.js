@@ -14,6 +14,7 @@ function webappTrigger(e) {
 }
 
 function processAll() {
+  setupProd();
   processTagNotices();
   processZaps();
   processNotifications();
