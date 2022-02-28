@@ -1,11 +1,12 @@
+const SCRIPT_EXECUTION_TIME = new Date();
+
 const MAX_NOTIFY_ATTEMPTS = 5;
-const MIN_NOTIFY_RETRY_WAIT_MILLIS = 10 * 60000;
-const LOCK_WAIT_MILLIS = 10000;
+const MIN_NOTIFY_RETRY_WAIT_MILLIS = 10 * 60000; // 10 minutes
+const LOCK_WAIT_MILLIS = 10000; // 10 seconds
+const STALE_STATUS_ALERT_HOURS = 8;
 
 const ZAP_DATA_SHEET_NAMES = ["Zaps", "Tags", "Contacts", "Notifications", "Battery"];
 const CARRY_FORWARD_SHEET_NAMES = ["Tags", "Contacts"];
-
-const SCRIPT_EXECUTION_TIME = new Date();
 
 // variables that take different values for prod vs test
 var mailApp = null;

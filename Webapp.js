@@ -86,7 +86,9 @@ function doPost(e) {
         });
       }
     }
+    if (e.parameter.bikeEventCount > 0) {
+      scheduleWebappTrigger();
+    }
   }
-  scheduleWebappTrigger();
   return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
 }

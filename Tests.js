@@ -6,6 +6,7 @@ function allTests() {
   unsubscribeTest();
   sendExceptionTest();
   createNewSheetTest();
+  checkForRecentStatusTest()
 }
 
 function integrationTestSetup() {
@@ -167,6 +168,7 @@ function sendExceptionTest() {
 
   processZaps();
   processNotifications();
+  SCRIPT_EXECUTION_TIME.setTime(SCRIPT_EXECUTION_TIME.getTime() + MIN_NOTIFY_RETRY_WAIT_MILLIS);
 
   notifyEmail = sheetData.notifications.getRows()[0];
   assertEquals_(1, notifyEmail.attempts);
@@ -178,16 +180,30 @@ function sendExceptionTest() {
     throw 'Expected "test exception", not: ' + notifySms.lastStatus;
   }
 
+  // should not throw
+  checkForStuckNotifications();
+
   // get it into a permanent failure.
-  processNotifications();
-  processNotifications();
-  processNotifications();
-  processNotifications();
+  for (var i = 1; i <= 5; ++i) {
+    processNotifications();
+    SCRIPT_EXECUTION_TIME.setTime(SCRIPT_EXECUTION_TIME.getTime() + MIN_NOTIFY_RETRY_WAIT_MILLIS);
+  }
   assertEquals_(5, notifySms.attempts);
 
   // no more attempts once we've reached MAX_NOTIFY_ATTEMPTS=5.
   processNotifications();
   assertEquals_(5, notifySms.attempts);
+
+  try {
+    checkForStuckNotifications();
+    throw new Error("No exception thrown for stuck notification.")
+  } catch (e) {
+    assertContains_("2 stuck notifications", e.message);
+    assertContains_("test exception", e.message);
+  }
+  SCRIPT_EXECUTION_TIME.setTime(SCRIPT_EXECUTION_TIME.getTime() + 24 * 3600 * 1000);
+  checkForStuckNotifications(); // old stuck notification should be ignored
+
   console.info("sendExceptionTest PASS");
 }
 
@@ -298,6 +314,31 @@ function zapPostTest() {
   console.info("zapPostTest PASSED");
 }
 
+function checkForRecentStatusTest() {
+  integrationTestSetup();
+  // No exception expected with no data, e.g. when processAll trigger
+  // runs when new year starts.
+  checkForRecentStatus();
+
+  sheetData.battery.append({
+    statusTime: SCRIPT_EXECUTION_TIME,
+    battery: 12.1,
+    solar: 12.2
+  });
+
+  // No exception expected with recent statusTime
+  checkForRecentStatus();
+
+  var oldMillis = SCRIPT_EXECUTION_TIME.getTime() - 2 * STALE_STATUS_ALERT_HOURS * 3600 * 1000;
+  sheetData.battery.getRows()[0].statusTime = new Date(oldMillis);
+  try {
+    checkForRecentStatus();
+    throw Error("No exception thrown for stale status test case");
+  } catch (e) {
+    assertContains_("16.0 hours ago", e.message)
+  }
+}
+
 function unsubscribeTest() {
   integrationTestSetup();
 
@@ -318,9 +359,12 @@ function unsubscribeTest() {
 
   sheetData.contacts.data = null; // force reload
   emailContact = sheetData.contacts.getRows()[0];
-  if (emailContact.unsubscribed == null) {
-    throw Error("'unsubscribed' should NOT be null")
-  }
+  assertEquals_(SCRIPT_EXECUTION_TIME, emailContact.unsubscribed);
+
+  processNotifications();
+  var emailNotification = sheetData.notifications.getRows()[0];
+  assertEquals_("dretzlaff+mrblow@gmail.com", emailNotification.contact);
+  assertEquals_("Unsubbed " + SCRIPT_EXECUTION_TIME, emailNotification.lastStatus);
 
   request.parameter.action = "sub";
   response = doGet(request);

@@ -20,6 +20,11 @@ function processAll() {
   processNotifications();
 }
 
+function checkForAlerts() {
+  checkBattery();
+  checkForStuckNotifications();
+}
+
 /**
  * Processes Tags to make sure emails and phone numbers in Tags.notify have
  * Contacts rows that point to them. Welcome and TagNotify notifications are
@@ -118,10 +123,10 @@ function processZaps() {
 function processNotifications() {
   var lock = waitForScriptLock();
 
-  var maxLastAttempt = SCRIPT_EXECUTION_TIME.getTime() - MIN_NOTIFY_RETRY_WAIT_MILLIS;
-  var notifications = sheetData.notifications.getRows()
-    .filter(n => n.lastStatus != "Complete" &&  n.attempts < MAX_NOTIFY_ATTEMPTS)
-    .filter(n => !n.lastAttempt || n.lastAttempt.getTime() < maxLastAttempt);
+  var notifications = sheetData.notifications.getRows().filter(shouldProcessNotification);
+  if (notifications.length == 0) {
+    return; // avoid creating tag lookup map, etc.
+  }
   
   notifications.forEach(notification => {
     if (notification.attempts) {
@@ -129,7 +134,8 @@ function processNotifications() {
     } else {
       notification.attempts = 1;
     }
-    notification.lastAttempt = SCRIPT_EXECUTION_TIME;
+    // Copy time so we get a snapshot; tests can modify SCRIPT_EXECUTION_TIME.
+    notification.lastAttempt = new Date(SCRIPT_EXECUTION_TIME);
   });
 
   // Release the lock to allow other processing to occur, since we can't really
@@ -137,11 +143,15 @@ function processNotifications() {
   // modified for at least MIN_RETRY_WAIT_MILLIS (except by this execution instance).
   SpreadsheetApp.flush();
   lock.releaseLock();
+
+  // There is some funny business if you end up calling getScriptLock() multiple
+  // times. I think I have it worked out, but I'm leaving this sanity check in.
   if (lock.hasLock() || LockService.getScriptLock().hasLock()) {
     throw Error("failed to release script lock");
   }
 
   var tags = sheetData.tags.withLookup(t => t.tag);
+  var contacts = sheetData.contacts.withLookup(c => c.contact);
   var zapTotals = null; // lazy load
   notifications.forEach(notification => {
       notification.studentNames =
@@ -161,18 +171,59 @@ function processNotifications() {
       }
 
       try {
-        var label = `Notifying ${JSON.stringify(notification)}`
-        console.time(label);
-        send(notification);
-        console.timeEnd(label);
-
-        notification.lastStatus = "Complete";
+        var unsubTime = contacts[notification.contact].unsubscribed;
+        if (unsubTime) {
+          notification.lastStatus = "Unsubbed " + unsubTime;
+        } else {
+          var label = `Notifying ${JSON.stringify(notification)}`
+          console.time(label);
+          send(notification);
+          console.timeEnd(label);
+          notification.lastStatus = "Complete";
+        }
       } catch (e) {
         console.warn(`Exception notifying '${notification.recipient}: ${JSON.stringify(e)}\n${e.stack}`)
         notification.lastStatus = e.toString();
         // throw e;
       }
     });
+}
+
+function checkForRecentStatus() {
+  var lastStatusTime = sheetData.battery.getRows().map(b => b.statusTime).reduce((a,b) => Math.max(a,b), null);
+  if (!lastStatusTime) {
+    console.log("No battery status data. NOT alerting.")
+    return;
+  }
+  var ageMillis = SCRIPT_EXECUTION_TIME.getTime() - lastStatusTime;
+  var ageHours = ageMillis / (3600 * 1000);
+  var message = "Last status update was " + ageHours.toFixed(1) + " hours ago.";
+  console.info(message);
+  if (ageHours > STALE_STATUS_ALERT_HOURS) {
+    throw new Error(message);
+  }
+}
+
+function checkForStuckNotifications() {
+  var oneDayAgo = new Date(SCRIPT_EXECUTION_TIME.getTime() - 24 * 3600 * 1000);
+  var stuck = sheetData.notifications.getRows()
+    .filter(shouldProcessNotification)
+    .filter(n => n.lastAttempt.getTime() > oneDayAgo.getTime())
+  if (stuck.length > 0) {
+    var message = stuck.length + " stuck notifications in the last 24 hours.";
+    message += " Example: " + stuck[0].lastStatus;
+    throw new Error(message);
+  }
+}
+
+function shouldProcessNotification(notification) {
+  var maxLastAttempt = SCRIPT_EXECUTION_TIME.getTime() - MIN_NOTIFY_RETRY_WAIT_MILLIS;
+  console.info(JSON.stringify(notification));
+  console.info("maxLastAttempt = " + new Date(maxLastAttempt) + ", lastAttempt = " + notification.lastAttempt);
+  return notification.lastStatus != "Complete"
+      && !notification.lastStatus.startsWith("Unsubbed")
+      && (!notification.attempts || notification.attempts < MAX_NOTIFY_ATTEMPTS)
+      && (!notification.lastAttempt || notification.lastAttempt.getTime() <= maxLastAttempt);
 }
 
 /**
