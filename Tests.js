@@ -210,7 +210,11 @@ function sendExceptionTest() {
 function zapProcessTest() {
   integrationTestSetup();
 
+  processTagNotices();
   processZaps();
+
+  // We should have 6 notifications: an HTML welcome, SMS welcome, (HTML zap, SMS zap) x2
+  assertEquals_(6, sheetData.notifications.getRows().length);
   
   // check the day's second zap
   var joeZap = sheetData.zaps.getRows()[1]
@@ -225,7 +229,7 @@ function zapProcessTest() {
   assertEquals_("Joe Blow", joeZap.studentName);
   assertEquals_(0.5, joeZap.distance);
 
-  var notifyEmail = sheetData.notifications.getRows()[0];
+  var notifyEmail = sheetData.notifications.getRows()[2];
   assertEquals_(joeZap.zapTime, notifyEmail.zapTime);
   assertEquals_(joeZap.studentName, "Joe Blow");
   assertEquals_("dretzlaff+mrblow@gmail.com", notifyEmail.contact);
@@ -234,21 +238,21 @@ function zapProcessTest() {
   assertEquals_("", notifyEmail.lastAttempt);
   assertEquals_("", notifyEmail.lastStatus);
 
-  var notifySms = sheetData.notifications.getRows()[1];
+  var notifySms = sheetData.notifications.getRows()[3];
   assertEquals_("858-442-0289", notifySms.contact);
 
   processNotifications();
 
-  notifyEmail = sheetData.notifications.getRows()[0];
+  notifyEmail = sheetData.notifications.getRows()[2];
   assertEquals_(1, notifyEmail.attempts);
   assertEquals_(SCRIPT_EXECUTION_TIME, notifyEmail.lastAttempt);
   assertEquals_("Complete", notifyEmail.lastStatus);
   assertEquals_(0.5, notifyEmail.totalDistance);
   assertEquals_(1, notifyEmail.totalZaps);
-  assertContains_("zapped", mailApp.testEmail.htmlBody);
-  assertContains_("Joe Blow", mailApp.testEmail.subject);
-  assertContains_("zapped", mailApp.testEmail.body);
-  assertEquals_(2, mailApp.allEmails.length);
+  assertContains_("zapped", mailApp.allEmails[1].htmlBody);
+  assertContains_("Joe Blow", mailApp.allEmails[1].subject);
+  assertContains_("zapped", mailApp.allEmails[1].body);
+  assertEquals_(3, mailApp.allEmails.length); // 2 zaps, 1 welcome
   assertEquals_(
     "Joe Blow zapped at 2:46:00 PM on 12/15/2021. Beep beep!\n\n" +
     "School year totals:\n\n" +
@@ -258,13 +262,13 @@ function zapProcessTest() {
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
     "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply to this email.",
-    mailApp.testEmail.body);
+    mailApp.allEmails[2].body);
 
-  notifySms = sheetData.notifications.getRows()[1];
+  notifySms = sheetData.notifications.getRows()[3];
   assertEquals_(1, notifySms.attempts);
   assertEquals_("Complete", notifySms.lastStatus);
 
-  assertEquals_(2, urlFetchApp.allRequests.length);
+  assertEquals_(5, urlFetchApp.allRequests.length); // 2 zaps, 1 welcome of 3 msgs.
   assertEquals_(
     "https://api.twilio.com/2010-04-01/Accounts/AC1d604e9a9b984ebcae5a6eabeae2226c/Messages.json",
     urlFetchApp.testRequest.url);

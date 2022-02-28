@@ -171,7 +171,11 @@ function processNotifications() {
       }
 
       try {
-        var unsubTime = contacts[notification.contact].unsubscribed;
+        var contact = contacts[notification.contact];
+        if (!contact) {
+          throw Error(notification.contact + " missing from Contacts sheet");
+        }
+        var unsubTime = contact.unsubscribed;
         if (unsubTime) {
           notification.lastStatus = "Unsubbed " + unsubTime;
         } else {
