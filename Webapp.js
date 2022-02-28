@@ -1,5 +1,6 @@
 function doGet(e) {
   setupProd();
+  waitForScriptLock();
   var output = HtmlService.createHtmlOutput();
   if (!e.parameter.contact) {
     output.append("missing contact");
@@ -25,7 +26,7 @@ function doGet(e) {
       undo = "unsub";
       break;
     case "unsub":
-      contact.unsubscribed = new Date();
+      contact.unsubscribed = SCRIPT_EXECUTION_TIME;
       output.append("<b>unsubscribed</b>");
       undo = "sub";
       break;
@@ -41,6 +42,7 @@ function doGet(e) {
 
 function doPost(e) {
   setupProd();
+  waitForScriptLock();
   var response = {};
   if (e.parameter.StationId != REQUIRED_STATION_ID) {
     response.error = "Invalid StationId";
@@ -85,5 +87,6 @@ function doPost(e) {
       }
     }
   }
+  scheduleWebappTrigger();
   return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
 }

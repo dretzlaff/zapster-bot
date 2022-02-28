@@ -1,4 +1,17 @@
-const MAX_NOTIFY_ATTEMPTS = 5;
+/**
+ * Process zaps and notifications in response to a webapp execution. This
+ * method allows the webapp execution to schedule processing without delay
+ * but return its response immediately.
+ */
+function scheduleWebappTrigger() {
+  ScriptApp.newTrigger("webappTrigger").timeBased().at(new Date()).create();
+}
+function webappTrigger(e) {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getUniqueId() == e.triggerUid)
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  processAll();
+}
 
 function processAll() {
   processTagNotices();
@@ -12,6 +25,8 @@ function processAll() {
  * scheduled for changes.
  */
 function processTagNotices() {
+  var lock = waitForScriptLock();
+
   // Use Tags.notify to build a map from contacts' email/phone to an
   // array of tags. At the end of this function, Contacts.tags will match
   // this notifyToTags map.
@@ -61,6 +76,7 @@ function processTagNotices() {
       c.tags = null;
     }
   });
+  lock.releaseLock();
 }
 
 /**
@@ -68,6 +84,7 @@ function processTagNotices() {
  * zap notifications.
  */
 function processZaps() {
+  var lock = waitForScriptLock();
   var tags = sheetData.tags.withLookup(t => t.tag);
   sheetData.zaps.getRows().forEach(zap => {
     if (zap.studentName) {
@@ -94,6 +111,67 @@ function processZaps() {
       });
     });
   });
+  lock.releaseLock();
+}
+
+function processNotifications() {
+  var lock = waitForScriptLock();
+
+  var maxLastAttempt = SCRIPT_EXECUTION_TIME.getTime() - MIN_NOTIFY_RETRY_WAIT_MILLIS;
+  var notifications = sheetData.notifications.getRows()
+    .filter(n => n.lastStatus != "Complete" &&  n.attempts < MAX_NOTIFY_ATTEMPTS)
+    .filter(n => !n.lastAttempt || n.lastAttempt.getTime() < maxLastAttempt);
+  
+  notifications.forEach(notification => {
+    if (notification.attempts) {
+      notification.attempts += 1;
+    } else {
+      notification.attempts = 1;
+    }
+    notification.lastAttempt = SCRIPT_EXECUTION_TIME;
+  });
+
+  // Release the lock to allow other processing to occur, since we can't really
+  // control notification execution time. The rows in "notifications" won't be
+  // modified for at least MIN_RETRY_WAIT_MILLIS (except by this execution instance).
+  SpreadsheetApp.flush();
+  lock.releaseLock();
+  if (lock.hasLock() || LockService.getScriptLock().hasLock()) {
+    throw Error("failed to release script lock");
+  }
+
+  var tags = sheetData.tags.withLookup(t => t.tag);
+  var zapTotals = null; // lazy load
+  notifications.forEach(notification => {
+      notification.studentNames =
+        splitToArray_(notification.tags)
+          .map(t => tags[t].studentName)
+          .join(', ');
+
+      // Compute total zaps and distance for Zap notifications.
+      if (notification.type == 'Zap') {
+        if (!zapTotals) {
+          zapTotals = getZapTotals();
+        }
+        // Assume zap notifications have a single student.
+        var studentTotals = zapTotals[notification.studentNames];
+        notification.totalZaps = studentTotals.totalZaps;
+        notification.totalDistance = studentTotals.totalDistance;
+      }
+
+      try {
+        var label = `Notifying ${JSON.stringify(notification)}`
+        console.time(label);
+        send(notification);
+        console.timeEnd(label);
+
+        notification.lastStatus = "Complete";
+      } catch (e) {
+        console.warn(`Exception notifying '${notification.recipient}: ${JSON.stringify(e)}\n${e.stack}`)
+        notification.lastStatus = e.toString();
+        // throw e;
+      }
+    });
 }
 
 /**
@@ -123,47 +201,10 @@ function getZapTotals() {
   return totals;
 }
 
-function processNotifications() {
-  var tags = sheetData.tags.withLookup(t => t.tag);
-  var zapTotals = null; // lazy load
-  sheetData.notifications.getRows()
-    .filter(n => n.lastStatus != "Complete" &&  n.attempts < MAX_NOTIFY_ATTEMPTS)
-    .forEach(notification => {
-      notification.studentNames =
-        splitToArray_(notification.tags)
-          .map(t => tags[t].studentName)
-          .join(', ');
-
-      // Compute total zaps and distance for Zap notifications.
-      if (notification.type == 'Zap') {
-        if (!zapTotals) {
-          zapTotals = getZapTotals();
-        }
-        // Assume zap notifications have a single student.
-        var studentTotals = zapTotals[notification.studentNames];
-        notification.totalZaps = studentTotals.totalZaps;
-        notification.totalDistance = studentTotals.totalDistance;
-      }
-
-      try {
-        if (notification.attempts) {
-          notification.attempts += 1;
-        } else {
-          notification.attempts = 1;
-        }
-
-        var label = `Notifying ${JSON.stringify(notification)}`
-        console.time(label);
-        send(notification);
-        console.timeEnd(label);
-
-        notification.lastStatus = "Complete";
-      } catch (e) {
-        console.warn(`Exception notifying '${notification.recipient}: ${JSON.stringify(e)}\n${e.stack}`)
-        notification.lastStatus = e.toString();
-        // throw e;
-      }
-    });
+function waitForScriptLock() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(LOCK_WAIT_MILLIS);
+  return lock;
 }
 
 function splitToArray_(value) {

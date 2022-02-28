@@ -1,5 +1,11 @@
+const MAX_NOTIFY_ATTEMPTS = 5;
+const MIN_NOTIFY_RETRY_WAIT_MILLIS = 10 * 60000;
+const LOCK_WAIT_MILLIS = 10000;
+
 const ZAP_DATA_SHEET_NAMES = ["Zaps", "Tags", "Contacts", "Notifications", "Battery"];
 const CARRY_FORWARD_SHEET_NAMES = ["Tags", "Contacts"];
+
+const SCRIPT_EXECUTION_TIME = new Date();
 
 // variables that take different values for prod vs test
 var mailApp = null;
@@ -12,7 +18,7 @@ function setupProd() {
   }
   mailApp = MailApp;
   urlFetchApp = UrlFetchApp;
-  sheetData = openSheetData(PROD_ZAP_DATA_FOLDER_ID, new Date());
+  sheetData = openSheetData(PROD_ZAP_DATA_FOLDER_ID, SCRIPT_EXECUTION_TIME);
 }
 function setupTest(date) {
   // leave mailApp and urlFetchApp null

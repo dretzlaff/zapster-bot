@@ -1,5 +1,3 @@
-// TODO: make sure "truncation" leaves at least one empty row.
-
 function allTests() {
   unitTests();
   welcomeTest();
@@ -84,7 +82,7 @@ function welcomeTest() {
     "That’s it for now. I hope I can write you again soon. Thanks for supporting self-powered commuting!\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
-    "Zapsters is a self-powered commuting program from Reach Out Crest View. To change your notification preferences, reply to this email.",
+    "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply to this email.",
     mailApp.testEmail.body);
 
   assertEquals_(3, urlFetchApp.allRequests.length);
@@ -130,7 +128,7 @@ function welcomeTest() {
     "That’s it for now. I hope I can write you again soon. Thanks for supporting self-powered commuting!\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
-    "Zapsters is a self-powered commuting program from Reach Out Crest View. To change your notification preferences, reply to this email.",
+    "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply to this email.",
     mailApp.testEmail.body);
 
   assertEquals_(4, urlFetchApp.allRequests.length); // just one more; no STOP or thanks message.
@@ -217,6 +215,7 @@ function zapProcessTest() {
   assertEquals_("dretzlaff+mrblow@gmail.com", notifyEmail.contact);
   assertEquals_(123456789, notifyEmail.tags);
   assertEquals_("", notifyEmail.attempts);
+  assertEquals_("", notifyEmail.lastAttempt);
   assertEquals_("", notifyEmail.lastStatus);
 
   var notifySms = sheetData.notifications.getRows()[1];
@@ -226,6 +225,7 @@ function zapProcessTest() {
 
   notifyEmail = sheetData.notifications.getRows()[0];
   assertEquals_(1, notifyEmail.attempts);
+  assertEquals_(SCRIPT_EXECUTION_TIME, notifyEmail.lastAttempt);
   assertEquals_("Complete", notifyEmail.lastStatus);
   assertEquals_(0.5, notifyEmail.totalDistance);
   assertEquals_(1, notifyEmail.totalZaps);
@@ -241,7 +241,7 @@ function zapProcessTest() {
     "24 more zaps until the next award.\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
-    "Zapsters is a self-powered commuting program from Reach Out Crest View. To change your notification preferences, reply to this email.",
+    "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply to this email.",
     mailApp.testEmail.body);
 
   notifySms = sheetData.notifications.getRows()[1];
