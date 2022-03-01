@@ -3,7 +3,7 @@ function doGet(e) {
   waitForScriptLock();
   var output = HtmlService.createHtmlOutput();
   if (!e.parameter.contact) {
-    output.append("missing contact");
+    output.append("missing 'contact' parameter for subscription  request");
     return output;
   }
   if (!["sub", "unsub"].includes(e.parameter.action)) {

@@ -79,7 +79,7 @@ function welcomeTest() {
   assertEquals_(
     "Hi, this is Zapster Bot from ROCV. I’ll email you whenever Joe Blow or Jane Blow zaps at the Crest View bike racks. " +
     "Specifically, I'm looking for tags 123456789 and 987654321.\n\n" +
-    "If you have questions or requests, you can respond to these emails and the Zapsters coordinator will get back to you.\n\n" +
+    "If you have questions or requests, you can respond to these emails and the Zapsters volunteer will get back to you.\n\n" +
     "That’s it for now. I hope I can write you again soon. Thanks for supporting self-powered commuting!\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
@@ -94,7 +94,7 @@ function welcomeTest() {
   assertEquals_(
     "I always send from this number, so you might add it to your " +
     "contacts. Reply STOP if you’ve heard enough, or email " +
-    "crestviewzapsters@gmail.com for anything else.",
+    "zapsters@rocv.org for anything else.",
     urlFetchApp.allRequests[1].options.payload.Body);
   assertEquals_(
     "That’s it for now. I hope I can text you again soon. Thanks for supporting self-powered commuting!",
@@ -125,7 +125,7 @@ function welcomeTest() {
   assertEquals_(
     "Hi, this is Zapster Bot from ROCV. I’ll email you whenever Jane Blow zaps at the Crest View bike racks. " +
     "Specifically, I'm looking for tag 987654321.\n\n" +
-    "If you have questions or requests, you can respond to these emails and the Zapsters coordinator will get back to you.\n\n" +
+    "If you have questions or requests, you can respond to these emails and the Zapsters volunteer will get back to you.\n\n" +
     "That’s it for now. I hope I can write you again soon. Thanks for supporting self-powered commuting!\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +

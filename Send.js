@@ -66,7 +66,7 @@ function sendEmail(notification) {
 
   mailApp.sendEmail({
     name: "Zapster Bot",
-    replyTo: "Zapsters <crestviewzapsters@gmail.com>",
+    replyTo: "Zapsters <zapsters@rocv.org>",
     to: notification.contact,
     subject: `Zapster notice for ${notification.studentNames}`,
     htmlBody: htmlBody,
