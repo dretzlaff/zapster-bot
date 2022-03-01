@@ -77,8 +77,8 @@ function welcomeTest() {
   processNotifications();
 
   assertEquals_(
-    "Hi, this is Zapster Bot from ROCV. I’ll email you whenever Joe Blow or Jane Blow zaps at the Crest View bike racks. " +
-    "Specifically, I'm looking for tags 123456789 and 987654321.\n\n" +
+    "Hi, this is Zapster Bot from ROCV. I'm told you want to know when Joe Blow or Jane Blow zaps at the Crest View bike racks. " +
+    "I'll keep an eye out for their tags      (123456789 and 987654321) and be in touch.\n\n" +
     "If you have questions or requests, you can respond to these emails and the Zapsters volunteer will get back to you.\n\n" +
     "That’s it for now. I hope I can write you again soon. Thanks for supporting self-powered commuting!\n\n" +
     "Sincerely,\n" +
