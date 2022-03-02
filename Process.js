@@ -1,3 +1,15 @@
+function processAll() {
+  setupProd();
+  processTagNotices();
+  processZaps();
+  processNotifications();
+}
+
+function checkForAlerts() {
+  checkBattery();
+  checkForStuckNotifications();
+}
+
 /**
  * Process zaps and notifications in response to a webapp execution. This
  * method allows the webapp execution to schedule processing without delay
@@ -11,18 +23,6 @@ function webappTrigger(e) {
     .filter(t => t.getUniqueId() == e.triggerUid)
     .forEach(t => ScriptApp.deleteTrigger(t));
   processAll();
-}
-
-function processAll() {
-  setupProd();
-  processTagNotices();
-  processZaps();
-  processNotifications();
-}
-
-function checkForAlerts() {
-  checkBattery();
-  checkForStuckNotifications();
 }
 
 /**
@@ -50,7 +50,7 @@ function processTagNotices() {
   // Make a quick contact lookup map.
   var contacts = sheetData.contacts.withLookup(c => c.contact);
   // Create or update Contact rows and schedule notifications.
-  for (notify in notifyToTags) {
+  for (var notify in notifyToTags) {
     var tags = notifyToTags[notify].join(', ');
     if (!contacts[notify]) {
       // Create a new contact row and schedule a welcome
@@ -64,7 +64,7 @@ function processTagNotices() {
         type: 'Welcome',
         tags: tags
       });
-    } else if (contacts[notify].studentNames != notifyToTags[notify]) {
+    } else if (contacts[notify].tags != tags) {
       // Update the contact row's student names and schedule a notification
       console.info(`Scheduling TagNotify for ${notify}`);
       contacts[notify].tags = tags;

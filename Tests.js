@@ -74,6 +74,10 @@ function welcomeTest() {
   var emailNotification = sheetData.notifications.getRows()[0];
   assertEquals_("Welcome", emailNotification.type);
 
+  // Still just two welcomes after another processing pass.
+  processTagNotices();
+  assertEquals_(2, sheetData.notifications.getRows().length);
+
   processNotifications();
 
   assertEquals_(

@@ -68,7 +68,7 @@ function sendEmail(notification) {
     name: "Zapster Bot",
     replyTo: "Zapsters <zapsters@rocv.org>",
     to: notification.contact,
-    subject: `Zapster notice for ${notification.studentNames}`,
+    subject: `Zapster ${notification.studentNames}`,
     htmlBody: htmlBody,
     body: textBody
   })
