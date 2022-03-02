@@ -63,12 +63,23 @@ function renderTemplate(notification, medium) {
 function sendEmail(notification) {
   var htmlBody = renderTemplate(notification, "Email");
   var textBody = toPlainText(htmlBody);
+  var subject = "Zapster";
+  if (notification.studentNames.lastIndexOf(",") > 0) {
+    subject += "s";
+  }
+  var firstNames = notification.studentNames.replaceAll(/(\w) [^,]+/g, "$1");
+  subject += " " + replaceLastComma(firstNames, "and");
+
+  // Start a new zap thread each month.
+  if (notification.type == "Zap") {
+    subject += ", " + Utilities.formatDate(new Date(), Session.getTimeZone(), "M/yy");
+  }
 
   mailApp.sendEmail({
     name: "Zapster Bot",
     replyTo: "Zapsters <zapsters@rocv.org>",
     to: notification.contact,
-    subject: `Zapster ${notification.studentNames}`,
+    subject: subject,
     htmlBody: htmlBody,
     body: textBody
   })

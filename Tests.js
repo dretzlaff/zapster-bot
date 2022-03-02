@@ -132,19 +132,20 @@ function welcomeTest() {
   assertEquals_(2, mailApp.allEmails.length);
 
   assertEquals_(
-    "Hi, this is Zapster Bot from ROCV. I got an update on your kid's tag situation. Now I’ll email you whenever Jane Blow zaps " +
-    "at the Crest View bike racks. Specifically, I'm looking for tag 987654321.\n\n" +
+    "Hi, this is Zapster Bot from ROCV. I got an update on your kid's tag situation. Now I’ll email you whenever Jane Blow " +
+    "zaps at the Crest View bike racks. Specifically, I'm looking for tag 987654321.\n\n" +
     "If you have questions or requests, you can respond to these emails and the Zapsters volunteer will get back to you.\n\n" +
     "That’s it for now. I hope I can write you again soon. Thanks for supporting self-powered commuting!\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
-    "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply to this email.",
+    "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply " +
+    "to this email.",
     mailApp.testEmail.body);
 
   assertEquals_(4, urlFetchApp.allRequests.length); // just one more; no STOP or thanks message.
   assertEquals_(
-    "Hi, this is Zapster Bot from ROCV. I’ll text you whenever Jane Blow zaps at the Crest View bike racks. " +
-    "Specifically, I'm looking for tag 987654321.",
+    "Hi! I got an update on your kid's tag situation. Now I’ll watch for tag 987654321 to see when Jane Blow " +
+    "zaps at the Crest View bike racks.",
     urlFetchApp.allRequests[3].options.payload.Body);
 
   // Removing the last references to the two contacts. Their contact rows should be updated, but no new SMS
@@ -266,7 +267,7 @@ function zapProcessTest() {
   assertEquals_(
     "Joe Blow zapped at 2:46:00 PM on 12/15/2021. Beep beep!\n\n" +
     "School year totals:\n\n" +
-    "- 1 zaps\n" +
+    "- 1 days\n" +
     "- 0.5 miles\n\n" +
     "24 more zaps until the next award.\n\n" +
     "Sincerely,\n" +
@@ -284,7 +285,7 @@ function zapProcessTest() {
     urlFetchApp.testRequest.url);
   assertEquals_("+18584420289", urlFetchApp.testRequest.options.payload.To);
   assertEquals_(
-    "Joe Blow zapped at 2:46:00 PM on 12/15/2021. That's 1 zaps and 0.5 miles this school year!",
+    "Joe Blow zapped at 2:46:00 PM on 12/15/2021. That's 1 days and 0.5 miles this school year!",
     urlFetchApp.testRequest.options.payload.Body);
 
   console.info("zapProcessTest PASSED");
