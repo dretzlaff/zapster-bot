@@ -81,13 +81,18 @@ function welcomeTest() {
   processNotifications();
 
   assertEquals_(
-    "Hi, this is Zapster Bot from ROCV. I'm told you want to know when Joe Blow or Jane Blow zaps at the Crest View bike racks. " +
-    "I'll keep an eye out for their tags      (123456789 and 987654321) and be in touch.\n\n" +
-    "If you have questions or requests, you can respond to these emails and the Zapsters volunteer will get back to you.\n\n" +
+    "Hi, this is Zapster Bot from ROCV. I'm told you want to know when Joe Blow or Jane Blow zaps at " +
+    "the Crest View bike racks. I'll keep an eye out for their tags (123456789 and 987654321) and be " +
+    "in touch.\n\n" +
+    "If you have questions or requests, you can respond to these emails and the Zapsters volunteer will " +
+    "get back to you. Spam filtering can be a problem for me, so consider adding me to your contacts " +
+    "(use my profile picture to see the add to contacts button?), marking this email as important, " +
+    "and/or replying to teach your email provider you want these.\n\n" +
     "That’s it for now. I hope I can write you again soon. Thanks for supporting self-powered commuting!\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
-    "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply to this email.",
+    "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification " +
+    "preferences, reply to this email.",
     mailApp.testEmail.body);
 
   assertEquals_(3, urlFetchApp.allRequests.length);

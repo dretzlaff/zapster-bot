@@ -109,6 +109,7 @@ function toPlainText(htmlBody) {
   });
   htmlBody = htmlBody.replaceAll(/^[ \t]+/mg, ""); // remove extra leading space introduced in previous line
   htmlBody = htmlBody.replaceAll(/\n\n\n/g, "\n\n"); // no double blank lines
+  htmlBody = htmlBody.replaceAll(/ +/g, " ");
   htmlBody = htmlBody.replaceAll(" or simply unsubscribe", ""); // this was a link and doesn't make sense.
   return htmlBody.trim();
 }
