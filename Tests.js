@@ -261,7 +261,7 @@ function zapProcessTest() {
   assertEquals_(0.5, notifyEmail.totalDistance);
   assertEquals_(1, notifyEmail.totalZaps);
   assertContains_("zapped", mailApp.allEmails[1].htmlBody);
-  assertContains_("Joe Blow", mailApp.allEmails[1].subject);
+  assertContains_("Joe, ", mailApp.allEmails[1].subject);
   assertContains_("zapped", mailApp.allEmails[1].body);
   assertEquals_(3, mailApp.allEmails.length); // 2 zaps, 1 welcome
   assertEquals_(
