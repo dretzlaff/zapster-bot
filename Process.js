@@ -6,8 +6,10 @@ function processAll() {
 }
 
 function checkForAlerts() {
-  checkBattery();
+  setupProd();
+  checkForRecentStatus();
   checkForStuckNotifications();
+  console.info("We're all good.");
 }
 
 /**

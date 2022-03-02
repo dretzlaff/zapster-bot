@@ -33,7 +33,7 @@ function doGet(e) {
     default:
       throw Error("unexpected action: " + e.parameter.action);
   }
-  output.append(" from Zapster Bot notifications.");
+  output.append(" to Zapster Bot notifications.");
   var link = ScriptApp.getService().getUrl();
   link += "?action=" + undo + "&contact=" + encodeURIComponent(e.parameter.contact);
   output.append(" <a href=\"" + link + "\" target=\"_top\">[Undo]</a></body></html>");
@@ -49,7 +49,7 @@ function doPost(e) {
   } else {
     var batteryKeys = {};
     sheetData.battery.getRows().forEach(b => {
-      batteryKeys[b.statusTime] = true;
+      batteryKeys[b.statusTime] = true; // use statusTime for idempotency
     });
     for (var i = 0; i < e.parameter.statusEventCount || 0; ++i) {
       var statusTime = new Date(1000 * parseInt(e.parameter["DateTime" + i]));
@@ -68,13 +68,13 @@ function doPost(e) {
 
     var zapKeys = {};
     sheetData.zaps.getRows().forEach(z => {
-      var zapHour = Utilities.formatDate(z.zapTime, Session.getTimeZone(), "yyyy-MM-dd'T'HH");
-      zapKeys[z.tag + "@" + zapHour] = true;
+      var zapKey = z.tag + "@" + Utilities.formatDate(z.zapTime, Session.getTimeZone(), "yyyy-MM-dd'T'HH");
+      zapKeys[zapKey] = true; // use tag+hour for idempotency
     });
     for (var i = 0; i < e.parameter.bikeEventCount || 0; ++i) {
       var zapTime = new Date(1000 * parseInt(e.parameter["BikeDateTime" + i]));
       var tag = e.parameter["RfidNum" + i].replace(/^0*DE/, '');
-      var zapKey = tag + "@" + zapTime;
+      var zapKey = tag + "@" + Utilities.formatDate(zapTime, Session.getTimeZone(), "yyyy-MM-dd'T'HH");
       if (zapKey in zapKeys) {
         response.dupZap = (response.dupZap || 0) + 1
       } else {
