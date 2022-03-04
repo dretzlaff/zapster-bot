@@ -72,9 +72,22 @@ function sendEmail(notification) {
 
   // Start a new zap thread each month.
   if (notification.type == "Zap") {
-    subject += ", " + Utilities.formatDate(new Date(), Session.getTimeZone(), "M/yy");
+    subject += ", " + Utilities.formatDate(SCRIPT_EXECUTION_TIME, Session.getTimeZone(), "MMMM yyyy");
   }
 
+/*
+  var unsubUrl = ScriptApp.getService().getUrl() + "?action=unsub&contact=" + encodeURIComponent(notification.contact);
+  var draft = GmailApp.createDraft(notification.contact, subject, "ignoredBody", {
+    name: "Zapster Bot",
+    replyTo: "Zapsters <zapsters@rocv.org>",
+    htmlBody: htmlBody
+  });
+  var rawBytes = draft.getMessage().getRawContent();
+  draft.deleteDraft();
+
+  rawBytes = `List-Unsubscribe: <${unsubUrl}>\n` + rawBytes;
+  Gmail.Users.Messages.send({raw: Utilities.base64EncodeWebSafe(rawBytes)}, "me");
+*/
   mailApp.sendEmail({
     name: "Zapster Bot",
     replyTo: "Zapsters <zapsters@rocv.org>",
