@@ -100,7 +100,7 @@ function welcomeTest() {
   assertEquals_(3, urlFetchApp.allRequests.length);
   assertEquals_(
     "Hi, this is Zapster Bot from ROCV. I’ll text you whenever Joe Blow or Jane Blow zaps at the Crest View bike racks. " +
-    "Specifically, I'm looking for tags 123456789 and 987654321.",
+    "I'm looking for tags 123456789 and 987654321.",
     urlFetchApp.allRequests[0].options.payload.Body);
   assertEquals_(
     "I always send from this number, so you might add it to your " +
