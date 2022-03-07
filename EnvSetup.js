@@ -5,36 +5,44 @@ const MIN_NOTIFY_RETRY_WAIT_MILLIS = 10 * 60000; // 10 minutes
 const LOCK_WAIT_MILLIS = 10000; // 10 seconds
 const STALE_STATUS_ALERT_HOURS = 8;
 
-const ZAP_DATA_SHEET_NAMES = ["Zaps", "Tags", "Contacts", "Notifications", "Battery"];
+const ZAP_DATA_SHEET_NAMES = ["Zaps", "Tags", "Contacts", "Notifications", "Battery", "Winners"];
 const CARRY_FORWARD_SHEET_NAMES = ["Tags", "Contacts"];
 
 // variables that take different values for prod vs test
 var mailApp = null;
 var urlFetchApp = null;
 var sheetData = null;
+var envFolderId = null;
 
 function setupProd() {
   if (mailApp != null || urlFetchApp != null || sheetData != null) {
     return; // never overwrite test with prod
   }
+  envFolderId = PROD_ZAP_DATA_FOLDER_ID;
   mailApp = MailApp;
   urlFetchApp = UrlFetchApp;
-  sheetData = openSheetData(PROD_ZAP_DATA_FOLDER_ID, SCRIPT_EXECUTION_TIME);
+  sheetData = openSheetData(SCRIPT_EXECUTION_TIME);
 }
 function setupTest(date) {
+  envFolderId = TEST_ZAP_DATA_FOLDER_ID;
   // leave mailApp and urlFetchApp null
-  sheetData = openSheetData(TEST_ZAP_DATA_FOLDER_ID, date);
+  sheetData = openSheetData(date);
   ZAP_DATA_SHEET_NAMES
     .map(name => sheetData[name.toLowerCase()].sheet)
     .forEach(truncateSheet_);
 }
 
-function findZapDataFiles(folderId) {
+function findSheetDataFilesForTest() {
+  return findFiles_("Zap Data", MimeType.GOOGLE_SHEETS);
+}
+
+function findFiles_(prefix, mimeType) {
   var files = {};
-  var fileIter = DriveApp.getFolderById(folderId).getFilesByType(MimeType.GOOGLE_SHEETS);
+  var fileIter = DriveApp.getFolderById(envFolderId).getFilesByType(mimeType);
+  var re = new RegExp(prefix + " \\b(\\d{4})\\b", "i");
   while (fileIter.hasNext()) {
     var file = fileIter.next();
-    var year = file.getName().match(/Zap Data \b(\d{4})\b/i);
+    var year = file.getName().match(re);
     if (year) {
       files[parseInt(year[1])] = file;
     }
@@ -42,37 +50,43 @@ function findZapDataFiles(folderId) {
   return files;
 }
 
-function openSheetData(folderId, date) {
-  var files = findZapDataFiles(folderId);
+function findOrCreateFile(date, prefix, mimeType, onCreate) {
+  var files = findFiles_(prefix, mimeType);
 
   var year = date.getFullYear();
   if (date.getMonth() < 6) { // 0=Jan so 6=July
     year -= 1;
   }
 
-  var spreadsheet;
   if (year in files) {
-    spreadsheet = SpreadsheetApp.open(files[year]);
-    spreadsheet.del
-  } else {
-    var sourceToCopy = files[year-1];
-    if (!sourceToCopy) {
-      throw Error("cannot find year " + (year-1) + " to initialize year " + year);
-    }
-    console.info("Creating spreadsheet for " + year);
-    var newName = sourceToCopy.getName().replace(/\b\d{4}\b.+/, year + "-" + (year+1));
-    var file = sourceToCopy.makeCopy(newName, DriveApp.getFolderById(folderId));
-    spreadsheet = SpreadsheetApp.open(file);
-    spreadsheet.getSheets()
-      // carry forward tag and contact information, truncating the rest
-      .filter(sheet => !CARRY_FORWARD_SHEET_NAMES.includes(sheet.getName()))
-      .forEach(truncateSheet_);
+    return files[year];
   }
+  var sourceToCopy = files[year-1];
+  if (!sourceToCopy) {
+    throw Error("cannot find year " + (year-1) + " to initialize " + year);
+  }
+  var newName = sourceToCopy.getName().replace(/\b\d{4}\b.+/, year + "-" + (year+1));
+  console.info(`Creating ${newName}`);
+  var newFile = sourceToCopy.makeCopy(newName, DriveApp.getFolderById(envFolderId));
+  onCreate(newFile); // let the new year's file be cleared appropriately
+  return newFile;
+}
+
+function openSheetData(date) {
+  var file = findOrCreateFile(date, "Zap Data", MimeType.GOOGLE_SHEETS, onCreateSheetData_);
+  var spreadsheet = SpreadsheetApp.open(file);
   var sheets = {};
   ZAP_DATA_SHEET_NAMES.forEach(name => {
     sheets[name.toLowerCase()] = new SheetData_(spreadsheet, name);
   });
   return sheets;
+}
+
+function onCreateSheetData_(file) {
+  SpreadsheetApp.open(file)
+      .getSheets()
+      .filter(sheet => !CARRY_FORWARD_SHEET_NAMES.includes(sheet.getName()))
+      .forEach(truncateSheet_);
 }
 
 function truncateSheet_(sheet) {
@@ -84,3 +98,4 @@ function truncateSheet_(sheet) {
     sheet.deleteRows(3, howMany);
   }
 }
+

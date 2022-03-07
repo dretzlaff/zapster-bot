@@ -5,7 +5,7 @@ function allTests() {
   zapPostTest();
   unsubscribeTest();
   sendExceptionTest();
-  createNewSheetTest();
+  createNewSheetDataTest();
   checkForRecentStatusTest()
 }
 
@@ -392,16 +392,17 @@ function unsubscribeTest() {
   console.info("unsubscribeTest PASSED");
 }
 
-function createNewSheetTest() {
-  var files = findZapDataFiles(TEST_ZAP_DATA_FOLDER_ID);
+function createNewSheetDataTest() {
+  setupTest(new Date("2021-09-01"));
+  var files = findSheetDataFilesForTest();
   if (!files[2020]) {
     throw Error("expected 2020 sheet to define structure")
   }
   if (files[2021]) {
     files[2021].setTrashed(true);
   }
-  sheetData = openSheetData(TEST_ZAP_DATA_FOLDER_ID, new Date("2021-09-01"));
-  files = findZapDataFiles(TEST_ZAP_DATA_FOLDER_ID);
+  sheetData = openSheetData(new Date("2021-09-01"));
+  files = findSheetDataFilesForTest();
   if (!files[2021]) {
     throw Error("expected 2021 sheet to be created")
   }

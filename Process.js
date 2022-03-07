@@ -197,6 +197,19 @@ function processNotifications() {
     });
 }
 
+function processGreenGear() {
+  
+
+  var upToDate = new Date(SCRIPT_EXECUTION_TIME.getTime() + 2 * 24 * 3600 * 1000); // 2 days
+  console.info("Looking for green gear awards before " + upToDate);
+  sheetData.winners.getRows()
+    .filter(r => r.studentName != "")
+    .filter(r => r.date.getTime() < upToDate.getTime())
+    .forEach(r => {
+
+    });
+}
+
 function checkForRecentStatus() {
   var lastStatusTime = sheetData.battery.getRows().map(b => b.statusTime).reduce((a,b) => Math.max(a,b), null);
   if (!lastStatusTime) {
