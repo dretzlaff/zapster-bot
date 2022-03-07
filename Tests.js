@@ -38,6 +38,7 @@ function integrationTestSetup() {
     guardians: 'joesdad@gmail.com, joesmom@gmail.com',
     notify: 'dretzlaff+mrblow@gmail.com, 858-442-0289',
     distance: 0.5,
+    classCode: '1C',
     created: '12/14/2021'
   });
   sheetData.tags.append({
@@ -46,6 +47,7 @@ function integrationTestSetup() {
     guardians: 'dretzlaff+mrblow@gmail.com',
     notify: 'dretzlaff+mrblow@gmail.com, 858-442-0289',
     distance: 1.5,
+    classCode: '2P',
     created: '12/15/2021'
   });
   sheetData.zaps.append({
@@ -419,6 +421,41 @@ function createNewSheetDataTest() {
       }
     }
   });
+}
+
+function greenGearCertificateTest() {
+  integrationTestSetup();
+  var files = findGreenGearFilesForTest();
+  if (!files[2020]) {
+    throw Error("expected 2020 sheet to define structure")
+  }
+  if (files[2021]) {
+    files[2021].setTrashed(true);
+  }
+  sheetData.winners.append({
+    date: '2022-03-07',
+    prize: "Something Cool"
+  });
+
+  processZaps();
+  processGreenGear();
+
+  var presentation = openGreenGearPresentation(SCRIPT_EXECUTION_TIME);
+  assertEquals_(2, presentation.getSlides().length);
+  var slide = presentation.getSlides()[1];
+  var allText = "";
+  slide.getShapes().forEach(shape => {
+    allText += shape.getText().asString();
+  });
+  assertContains_("Joe Blow", allText);
+  assertContains_("March 7, 2022", allText);
+  assertContains_("Something Cool", allText);
+  assertContains_("1st Grade", allText);
+
+  console.info("testEmail =\n" + JSON.stringify(mailApp.testEmail));
+  assertEquals_("Zapsters winner for March 7, 2022", mailApp.testEmail.subject);
+  assertContains_("Joe Blow is the Green Gear winner for the week of March 7, 2022.", mailApp.testEmail.body);
+  assertContains_("They are in 1st grade and have 1 zaps and 0.5 miles this school year.", mailApp.testEmail.body);
 }
 
 ///////////////////////////////////////// TESTS /////////////////////////////////////////

@@ -1,12 +1,15 @@
-function processAll() {
-  setupProd();
-  processTagNotices();
-  processZaps();
-  processNotifications();
-}
+/**
+ * Does *all* the processing.
+ */
+function periodicTrigger() {
+  // Send out notifications for tag changes go out. Includes zap processing
+  // to pick up any previously unassigned tags.
+  webappTrigger();
 
-function checkForAlerts() {
-  setupProd();
+  // Weekly green gear award email.
+  processGreenGear();
+
+  // Alerts.
   checkForRecentStatus();
   checkForStuckNotifications();
   console.info("We're all good.");
@@ -24,7 +27,11 @@ function webappTrigger(e) {
   ScriptApp.getProjectTriggers()
     .filter(t => t.getUniqueId() == e.triggerUid)
     .forEach(t => ScriptApp.deleteTrigger(t));
-  processAll();
+
+  setupProd();
+  processTagNotices();
+  processZaps();
+  processNotifications();
 }
 
 /**
@@ -156,7 +163,6 @@ function processNotifications() {
 
   var tags = sheetData.tags.withLookup(t => t.tag);
   var contacts = sheetData.contacts.withLookup(c => c.contact);
-  var zapTotals = null; // lazy load
   notifications.forEach(notification => {
       notification.studentNames =
         splitToArray_(notification.tags)
@@ -165,11 +171,8 @@ function processNotifications() {
 
       // Compute total zaps and distance for Zap notifications.
       if (notification.type == 'Zap') {
-        if (!zapTotals) {
-          zapTotals = getZapTotals();
-        }
         // Assume zap notifications have a single student.
-        var studentTotals = zapTotals[notification.studentNames];
+        var studentTotals = getZapTotals(notification.studentNames);
         notification.totalZaps = studentTotals.totalZaps;
         notification.totalDistance = studentTotals.totalDistance;
       }
@@ -197,17 +200,93 @@ function processNotifications() {
     });
 }
 
-function processGreenGear() {
-  
+/**
+ * Function for manual execution that creates slides and emails for all assigned winners.
+ */
+function backfillGreenGear() {
+  setupProd();
+  var presentation = openGreenGearPresentation(SCRIPT_EXECUTION_TIME);
+  sheetData.winners.getRows().forEach(winner => {
+    if (winner.studentName) {
+      createGreenGearCertificate(presentation, winner);
+    }
+  });
+}
 
+function processGreenGear() {
   var upToDate = new Date(SCRIPT_EXECUTION_TIME.getTime() + 2 * 24 * 3600 * 1000); // 2 days
   console.info("Looking for green gear awards before " + upToDate);
-  sheetData.winners.getRows()
-    .filter(r => r.studentName != "")
-    .filter(r => r.date.getTime() < upToDate.getTime())
-    .forEach(r => {
+  var presentation = openGreenGearPresentation(SCRIPT_EXECUTION_TIME);
 
-    });
+  var allWinners = sheetData.winners.withLookup(w => w.studentName);
+  var tags = sheetData.tags.withLookup(t => t.tag);
+
+  var previousWinner = null;
+  sheetData.winners.getRows().forEach(winner => {
+    if (winner.date.getTime() < upToDate.getTime() && winner.studentName == "") {
+      var candidates = sheetData.zaps.getRows()
+        .filter(zap => {
+          return (previousWinner == null || zap.zapTime.getTime() > previousWinner.date.getTime())
+              && zap.zapTime.getTime() < winner.date.getTime();
+        })
+        .filter(zap => zap.studentName)
+        .filter(zap => !(zap.studentName in allWinners)); // don't let anyone win twice
+
+      if (candidates.length == 0) {
+        throw new Error(`No zaps between ${previousWinner ? previousWinner.date : 'null'} and ${winner.date}`);
+      }
+      var winningZapIndex = Math.floor(Math.random() * candidates.length);
+      var winningZap = candidates[winningZapIndex];
+      console.info(`Green Gear winner is #${winningZapIndex} of ${candidates.length}: ${winningZap.studentName}, ${winningZap.zapTime}`);
+
+      winner.studentName = winningZap.studentName;
+      winner.classCode = tags[winningZap.tag].classCode;
+      createGreenGearCertificate(presentation, winner);
+    }
+    previousWinner = winner;
+  });
+}
+
+function createGreenGearCertificate(presentation, winner) {
+  var grade = formatGrade(winner.classCode);
+  var formattedDate = Utilities.formatDate(winner.date, Session.getTimeZone(), "MMMM d, yyyy");
+  console.info(`Creating Green Gear certificate for '${winner.studentName}' in ${grade} on ${formattedDate}: ${winner.prize}`);
+  var newSlide = presentation.getSlides()[0].duplicate();
+  newSlide.getShapes().forEach(shape => {
+    if (shape.getPageElementType() == SlidesApp.PageElementType.SHAPE) {
+      var text = shape.getText();
+      text.replaceAllText("STUDENT", winner.studentName);
+      text.replaceAllText("GG", grade);
+      text.replaceAllText("DDDD", formattedDate);
+      text.replaceAllText("PRIZE", winner.prize);
+    }
+  });
+
+  var studentTotals = getZapTotals(winner.studentName);
+  if (!studentTotals) {
+    console.info(`Skipping email for unknown student ${winner.studentName}.`);
+    return;
+  }
+  var body = `${winner.studentName} is the Green Gear winner for the week of ${formattedDate}.\n`;
+  body += `${grade} grade, ${studentTotals.totalZaps} zaps and ${studentTotals.totalDistance} miles this school year.\n\n`;
+  body += "https://docs.google.com/presentation/d/" + presentation.getId() + "#slide=id." + newSlide.getObjectId();
+
+  mailApp.sendEmail({
+    to: GREEN_GEAR_RECIP,
+    name: "Zapster Bot",
+    subject: `Zapsters winner for ${formattedDate}`,
+    body: body
+  });
+}
+
+function formatGrade(classCode) {
+  switch (classCode[0]) {
+    case 'K': return "Kindergarten";
+    case '1': return "1st";
+    case '2': return "2nd";
+    case '3': return "3rd";
+    default: return classCode[0] + "th";
+  }
 }
 
 function checkForRecentStatus() {
@@ -248,8 +327,12 @@ function shouldProcessNotification(notification) {
 /**
  * Returns a map from student name to {totalZap and totalDistance}.
  */
-function getZapTotals() {
-  var totals = {};
+var zapTotals_ = null;
+function getZapTotals(studentName) {
+  if (zapTotals_) {
+    return zapTotals_[studentName];
+  }
+  zapTotals_ = {};
   var processed = {}; // only process first row for each student and date
   sheetData.zaps.getRows().forEach(zap => {
     var key = Utilities.formatDate(zap.zapTime, Session.getTimeZone(), "yyyy-MM-dd") + ":" + zap.studentName;
@@ -258,18 +341,22 @@ function getZapTotals() {
     }
     processed[key] = true;
 
-    studentTotals = totals[zap.studentName];
+    studentTotals = zapTotals_[zap.studentName];
     if (!studentTotals) {
       studentTotals = {
         totalZaps: 0,
         totalDistance: 0
       };
-      totals[zap.studentName] = studentTotals;
+      zapTotals_[zap.studentName] = studentTotals;
     }
     studentTotals.totalZaps += 1;
     studentTotals.totalDistance += zap.distance;
   });
-  return totals;
+  // make sure we don't have distances like "7.799999999999998"
+  Object.keys(zapTotals_).forEach(k => {
+    zapTotals_[k].totalDistance = Math.round((zapTotals_[k].totalDistance + Number.EPSILON) * 100) / 100;
+  })
+  return zapTotals_[studentName];
 }
 
 function waitForScriptLock() {

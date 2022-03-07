@@ -36,6 +36,10 @@ function findSheetDataFilesForTest() {
   return findFiles_("Zap Data", MimeType.GOOGLE_SHEETS);
 }
 
+function findGreenGearFilesForTest() {
+  return findFiles_("Green Gear Certificates", MimeType.GOOGLE_SLIDES);
+}
+
 function findFiles_(prefix, mimeType) {
   var files = {};
   var fileIter = DriveApp.getFolderById(envFolderId).getFilesByType(mimeType);
@@ -50,7 +54,7 @@ function findFiles_(prefix, mimeType) {
   return files;
 }
 
-function findOrCreateFile(date, prefix, mimeType, onCreate) {
+function findOrCreateFile_(date, prefix, mimeType, onCreate) {
   var files = findFiles_(prefix, mimeType);
 
   var year = date.getFullYear();
@@ -73,7 +77,7 @@ function findOrCreateFile(date, prefix, mimeType, onCreate) {
 }
 
 function openSheetData(date) {
-  var file = findOrCreateFile(date, "Zap Data", MimeType.GOOGLE_SHEETS, onCreateSheetData_);
+  var file = findOrCreateFile_(date, "Zap Data", MimeType.GOOGLE_SHEETS, onCreateSheetData_);
   var spreadsheet = SpreadsheetApp.open(file);
   var sheets = {};
   ZAP_DATA_SHEET_NAMES.forEach(name => {
@@ -99,3 +103,14 @@ function truncateSheet_(sheet) {
   }
 }
 
+function onCreateGreenGearPresentation_(file) {
+  var p = SlidesApp.openById(file.getId());
+  for (var i = p.getSlides().length - 1; i > 0; --i) {
+    p.getSlides()[i].remove();
+  }
+}
+
+function openGreenGearPresentation(date) {
+  var file = findOrCreateFile_(date, "Green Gear Certificates", MimeType.GOOGLE_SLIDES, onCreateGreenGearPresentation_);
+  return SlidesApp.openById(file.getId());
+}
