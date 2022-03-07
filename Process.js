@@ -24,9 +24,11 @@ function scheduleWebappTrigger() {
   ScriptApp.newTrigger("webappTrigger").timeBased().at(new Date()).create();
 }
 function webappTrigger(e) {
-  ScriptApp.getProjectTriggers()
-    .filter(t => t.getUniqueId() == e.triggerUid)
-    .forEach(t => ScriptApp.deleteTrigger(t));
+  if (e) {
+    ScriptApp.getProjectTriggers()
+      .filter(t => t.getUniqueId() == e.triggerUid)
+      .forEach(t => ScriptApp.deleteTrigger(t));
+  }
 
   setupProd();
   processTagNotices();

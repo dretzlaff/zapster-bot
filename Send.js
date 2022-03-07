@@ -75,27 +75,32 @@ function sendEmail(notification) {
     subject += ", " + Utilities.formatDate(SCRIPT_EXECUTION_TIME, Session.getTimeZone(), "MMMM yyyy");
   }
 
-/*
-  var unsubUrl = ScriptApp.getService().getUrl() + "?action=unsub&contact=" + encodeURIComponent(notification.contact);
-  var draft = GmailApp.createDraft(notification.contact, subject, "ignoredBody", {
-    name: "Zapster Bot",
-    replyTo: "Zapsters <zapsters@rocv.org>",
-    htmlBody: htmlBody
-  });
-  var rawBytes = draft.getMessage().getRawContent();
-  draft.deleteDraft();
+  var gmailSend = false;
+  if (gmailSend) {
+    var unsubUrl = ScriptApp.getService().getUrl() + "?action=unsub&contact=" + encodeURIComponent(notification.contact);
+    var draft = GmailApp.createDraft(notification.contact, subject, "ignoredBody", {
+      name: "Zapster Bot",
+      replyTo: "Zapsters <zapsters@rocv.org>",
+      htmlBody: htmlBody
+    });
+    var rawBytes = draft.getMessage().getRawContent();
+    draft.deleteDraft();
 
-  rawBytes = `List-Unsubscribe: <${unsubUrl}>\n` + rawBytes;
-  Gmail.Users.Messages.send({raw: Utilities.base64EncodeWebSafe(rawBytes)}, "me");
-*/
-  mailApp.sendEmail({
-    name: "Zapster Bot",
-    replyTo: "Zapsters <zapsters@rocv.org>",
-    to: notification.contact,
-    subject: subject,
-    htmlBody: htmlBody,
-    body: textBody
-  })
+    rawBytes =
+      `List-Unsubscribe: <${unsubUrl}>\n` +
+      `List-Unsubscribe-Post: List-Unsubscribe=One-Click\n` +
+      rawBytes;
+    Gmail.Users.Messages.send({raw: Utilities.base64EncodeWebSafe(rawBytes)}, "me");
+  } else {
+    mailApp.sendEmail({
+      name: "Zapster Bot",
+      replyTo: "Zapsters <zapsters@rocv.org>",
+      to: notification.contact,
+      subject: subject,
+      htmlBody: htmlBody,
+      body: textBody
+    });
+  }
 }
 
 function sendSms(notification) {
