@@ -1,46 +1,38 @@
 function doGet(e) {
   setupProd();
   waitForScriptLock();
-  var output = HtmlService.createHtmlOutput();
-  if (!e.parameter.contact) {
-    output.append("missing 'contact' parameter for subscription  request");
+  var output = ContentService.createTextOutput();
+  if (!e.parameter.cid) {
+    output.append("missing 'cid' parameter for subscription  request");
     return output;
   }
-  if (!["sub", "unsub"].includes(e.parameter.action)) {
-    output.append("unknown action");
-    return output;
-  }
-  var contact = sheetData.contacts.getRows().find(c => c.contact == e.parameter.contact);
+  var contact = sheetData.contacts.getRows()
+    .find(c => computeContactDigest(c.contact) == e.parameter.cid);
   if (!contact) {
-    output.append(e.parameter.contact + " not found");
+    output.append("cannot find contact for cid=" + e.parameter.cid);
     return output;
   }
 
-  output = HtmlService.createHtmlOutput();
-  output.append("<html><body>" + e.parameter.contact + " is now ");
-  var undo;
-  switch (e.parameter.action) {
-    case "sub":
+  output.append("<html><body>" + contact.contact + " is now ");
+  var link = "?cid=" + e.parameter.cid;
+  if (e.parameter.resub) {
       contact.unsubscribed = null;
       output.append("<b>subscribed</b>");
-      undo = "unsub";
-      break;
-    case "unsub":
+  } else {
       contact.unsubscribed = SCRIPT_EXECUTION_TIME;
       output.append("<b>unsubscribed</b>");
-      undo = "sub";
-      break;
-    default:
-      throw Error("unexpected action: " + e.parameter.action);
+      link += "&resub=1";
   }
   output.append(" to Zapster Bot notifications.");
-  var link = ScriptApp.getService().getUrl();
-  link += "?action=" + undo + "&contact=" + encodeURIComponent(e.parameter.contact);
-  output.append(" <a href=\"" + link + "\" target=\"_top\">[Undo]</a></body></html>");
+  output.append(" <a href=\"" + link + "\">[Undo]</a></body></html>");
   return output;
 }
 
 function doPost(e) {
+  // Subscription request
+  if (e.parameter.cid) {
+    return doGet(e);
+  }
   setupProd();
   waitForScriptLock();
   var response = {};

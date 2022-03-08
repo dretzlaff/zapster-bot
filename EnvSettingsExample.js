@@ -1,5 +1,7 @@
 /*
+const GREEN_GEAR_RECIP = "";
 const REQUIRED_STATION_ID = "00:00:00:00:00:00";
+const SUB_REQUEST_DIGEST_PREFIX = "";
 
 const TWILIO_SERVICE_ID = "";
 const TWILIO_ACCOUNT_ID = "";
@@ -8,5 +10,4 @@ const TWILIO_AUTH_TOKEN = "";
 const PROD_ZAP_DATA_FOLDER_ID = "";
 const TEST_ZAP_DATA_FOLDER_ID = "";
 
-const GREEN_GEAR_RECIP = "";
 */

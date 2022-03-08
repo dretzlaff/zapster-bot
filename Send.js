@@ -28,11 +28,18 @@ function replaceLastComma(string, replacement) {
   return string;
 }
 
+function computeContactDigest(contact) {
+  var value = SUB_REQUEST_DIGEST_PREFIX + ":" + contact;
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, value);
+  var digest = Utilities.base64EncodeWebSafe(bytes);
+  return digest;
+}
+
 function renderTemplate(notification, medium) {
   var template = HtmlService.createTemplateFromFile(notification.type + medium);
   template.notification = notification;
   template.links = {
-    unsubscribe: ScriptApp.getService().getUrl() + "?action=unsub&contact=" + encodeURIComponent(notification.contact)
+    unsubscribe: "https://www.rocv.org/api/zapsters/v1/mail?cid=" + computeContactDigest(notification.contact)
   }
   if (notification.studentNames) {
     template.studentNamesOr = replaceLastComma(notification.studentNames, "or");
