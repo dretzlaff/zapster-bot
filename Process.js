@@ -48,7 +48,7 @@ function processTagNotices() {
   // array of tags. At the end of this function, Contacts.tags will match
   // this notifyToTags map.
   var notifyToTags = {};
-  sheetData.tags.getRows().forEach(tag => {
+  sheetData.tags.forEach(tag => {
     splitToArray_(tag.notify).forEach(notify => {
       var tags = notifyToTags[notify];
       if (!tags) {
@@ -88,7 +88,7 @@ function processTagNotices() {
   }
   // Clear student names from contacts who've been removed from all
   // student notification lists.
-  sheetData.contacts.getRows().forEach(c => {
+  sheetData.contacts.forEach(c => {
     if (c.tags && !notifyToTags[c.contact]) {
       c.tags = null;
     }
@@ -103,7 +103,7 @@ function processTagNotices() {
 function processZaps() {
   var lock = waitForScriptLock();
   var tags = sheetData.tags.withLookup(t => t.tag);
-  sheetData.zaps.getRows().forEach(zap => {
+  sheetData.zaps.forEach(zap => {
     if (zap.studentName) {
       return; // already processed
     }
@@ -134,7 +134,7 @@ function processZaps() {
 function processNotifications() {
   var lock = waitForScriptLock();
 
-  var notifications = sheetData.notifications.getRows()
+  var notifications = sheetData.notifications
     .filter(shouldProcessNotification)
     .filter(n => !n.attempts || n.attempts < MAX_NOTIFY_ATTEMPTS);
   if (notifications.length == 0) {
@@ -208,7 +208,7 @@ function processNotifications() {
 function backfillGreenGear() {
   setupProd();
   var presentation = openGreenGearPresentation(SCRIPT_EXECUTION_TIME);
-  sheetData.winners.getRows().forEach(winner => {
+  sheetData.winners.forEach(winner => {
     if (winner.studentName) {
       createGreenGearCertificate(presentation, winner);
     }
@@ -224,9 +224,9 @@ function processGreenGear() {
   var tags = sheetData.tags.withLookup(t => t.tag);
 
   var previousWinner = null;
-  sheetData.winners.getRows().forEach(winner => {
+  sheetData.winners.forEach(winner => {
     if (winner.date.getTime() < upToDate.getTime() && winner.studentName == "") {
-      var candidates = sheetData.zaps.getRows()
+      var candidates = sheetData.zaps
         .filter(zap => {
           return (previousWinner == null || zap.zapTime.getTime() > previousWinner.date.getTime())
               && zap.zapTime.getTime() < winner.date.getTime();
@@ -292,7 +292,7 @@ function formatGrade(classCode) {
 }
 
 function checkForRecentStatus() {
-  var lastStatusTime = sheetData.battery.getRows().map(b => b.statusTime).reduce((a,b) => Math.max(a,b), null);
+  var lastStatusTime = sheetData.battery.map(b => b.statusTime).reduce((a,b) => Math.max(a,b), null);
   if (!lastStatusTime) {
     console.log("No battery status data. NOT alerting.")
     return;
@@ -308,7 +308,7 @@ function checkForRecentStatus() {
 
 function checkForStuckNotifications() {
   var oneDayAgo = new Date(SCRIPT_EXECUTION_TIME.getTime() - 24 * 3600 * 1000);
-  var stuck = sheetData.notifications.getRows()
+  var stuck = sheetData.notifications
     .filter(shouldProcessNotification)
     .filter(n => n.attempts >= MAX_NOTIFY_ATTEMPTS)
     .filter(n => n.lastAttempt.getTime() > oneDayAgo.getTime())
@@ -336,7 +336,7 @@ function getZapTotals(studentName) {
   }
   zapTotals_ = {};
   var processed = {}; // only process first row for each student and date
-  sheetData.zaps.getRows().forEach(zap => {
+  sheetData.zaps.forEach(zap => {
     var key = Utilities.formatDate(zap.zapTime, Session.getTimeZone(), "yyyy-MM-dd") + ":" + zap.studentName;
     if (key in processed) {
       return;

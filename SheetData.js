@@ -1,15 +1,19 @@
 // Class that exposes a sheet as objects whose property names come from
 // column headers.
-var SheetData_ = function(spreadsheet, sheetName) {
-  var sheets = spreadsheet.getSheets().filter(s => s.getName() == sheetName);
-  if (sheets.length == 0) {
-    throw Error(`No sheet name '${sheetName}'`);
-  }
-  this.sheet = sheets[0];
+class SheetData_ {
+  constructor(spreadsheet, sheetName) {
+    this.loaded = false;
 
-  // Use header row for property names, ignoring empty, trailing columns.
-  var headerValues = this.sheet.getSheetValues(1, 1, 1, -1)[0];
-  this.propertyNames = trimTrailingEmpty_(headerValues.map(toPropertyName_));
+    var sheets = spreadsheet.getSheets().filter(s => s.getName() == sheetName);
+    if (sheets.length == 0) {
+      throw Error(`No sheet name '${sheetName}'`);
+    }
+    this.sheet = sheets[0];
+
+    // Use header row for property names, ignoring empty, trailing columns.
+    var headerValues = this.sheet.getSheetValues(1, 1, 1, -1)[0];
+    this.propertyNames = trimTrailingEmpty_(headerValues.map(toPropertyName_));
+  }
 }
 
 SheetData_.prototype.getRows = function() {
@@ -50,7 +54,7 @@ SheetData_.prototype.loadRows = function() {
 
 SheetData_.prototype.withLookup = function(getKey) {
   var rows = {};
-  this.getRows().forEach(row => {
+  this.forEach(row => {
     var key = getKey(row);
     rows[key] = row;
   });
@@ -72,6 +76,21 @@ SheetData_.prototype.append = function(obj) {
   }
   this.sheet.appendRow(rowContents);
   this.data = null;
+}
+
+// Convenience functions so SheetData feels like an array.
+
+SheetData_.prototype.filter = function(f) {
+  return this.getRows().filter(f);
+}
+SheetData_.prototype.forEach = function(f) {
+  return this.getRows().forEach(f);
+}
+SheetData_.prototype.find = function(f) {
+  return this.getRows().find(f);
+}
+SheetData_.prototype.map = function(f) {
+  return this.getRows().map(f);
 }
 
 function toPropertyName_(value) {

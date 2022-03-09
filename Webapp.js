@@ -6,8 +6,7 @@ function doGet(e) {
     output.append("missing 'cid' parameter for subscription  request");
     return output;
   }
-  var contact = sheetData.contacts.getRows()
-    .find(c => computeContactDigest(c.contact) == e.parameter.cid);
+  var contact = sheetData.contacts.find(c => computeContactDigest(c.contact) == e.parameter.cid);
   if (!contact) {
     output.append("cannot find contact for cid=" + e.parameter.cid);
     return output;
@@ -40,7 +39,7 @@ function doPost(e) {
     response.error = "Invalid StationId";
   } else {
     var batteryKeys = {};
-    sheetData.battery.getRows().forEach(b => {
+    sheetData.battery.forEach(b => {
       batteryKeys[b.statusTime] = true; // use statusTime for idempotency
     });
     for (var i = 0; i < e.parameter.statusEventCount || 0; ++i) {
@@ -59,7 +58,7 @@ function doPost(e) {
     }
 
     var zapKeys = {};
-    sheetData.zaps.getRows().forEach(z => {
+    sheetData.zaps.forEach(z => {
       var zapKey = z.tag + "@" + Utilities.formatDate(z.zapTime, Session.getTimeZone(), "yyyy-MM-dd'T'HH");
       zapKeys[zapKey] = true; // use tag+hour for idempotency
     });

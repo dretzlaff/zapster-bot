@@ -271,7 +271,7 @@ function zapProcessTest() {
     "School year totals:\n\n" +
     "- 1 days\n" +
     "- 0.5 miles\n\n" +
-    "24 more zaps until the next award.\n\n" +
+    "24 more zaps to earn the 25 Zaps award!\n\n" +
     "Sincerely,\n" +
     "Zapster Bot\n\n" +
     "Zapsters is a self-powered commuting program from ReachOut Crest View. To change your notification preferences, reply to this email.",
@@ -367,8 +367,7 @@ function unsubscribeTest() {
 
   var request = {
     parameter: {
-      action: "unsub",
-      contact: emailContact.contact
+      cid: computeContactDigest(emailContact.contact)
     }
   };
   var response = doGet(request);
@@ -383,7 +382,7 @@ function unsubscribeTest() {
   assertEquals_("dretzlaff+mrblow@gmail.com", emailNotification.contact);
   assertEquals_("Unsubbed " + SCRIPT_EXECUTION_TIME, emailNotification.lastStatus);
 
-  request.parameter.action = "sub";
+  request.parameter.resub = 1;
   response = doGet(request);
   assertContains_("<b>subscribed</b>", response.getContent());
 
